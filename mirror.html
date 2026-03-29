@@ -112,6 +112,16 @@
         .loading {
             color: #ffaa44;
         }
+        
+        .real-data {
+            color: #00ff00;
+            font-size: 0.7rem;
+        }
+        
+        .simulated {
+            color: #ffaa44;
+            font-size: 0.7rem;
+        }
     </style>
 </head>
 <body>
@@ -125,18 +135,18 @@
         <div class="data-box">
             <div class="data-row">
                 <span class="data-label">[IP АДРЕС]</span>
-                <span class="data-value" id="ip"><span class="loading">🔍 определение...</span></span>
+                <span class="data-value" id="ip"><span class="loading">🔍 сканирование...</span></span>
             </div>
             <div class="data-row">
                 <span class="data-label">[ГЕОЛОКАЦИЯ]</span>
                 <span class="data-value" id="geo"><span class="loading">🔍 определение...</span></span>
             </div>
             <div class="data-row">
-                <span class="data-label">[ПРОВАЙДЕР]</span>
-                <span class="data-value" id="isp"><span class="loading">🔍 определение...</span></span>
+                <span class="data-label">[ПРОВАЙДЕР]</span><span class="data-value" id="isp"><span class="loading">🔍 анализ...</span></span>
             </div>
             <div class="data-row">
-                <span class="data-label">[БРАУЗЕР]</span><span class="data-value" id="browser">---</span>
+                <span class="data-label">[БРАУЗЕР]</span>
+                <span class="data-value" id="browser">---</span>
             </div>
             <div class="data-row">
                 <span class="data-label">[ОС]</span>
@@ -145,6 +155,10 @@
             <div class="data-row">
                 <span class="data-label">[ЭКРАН]</span>
                 <span class="data-value" id="screen">---</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">[ВРЕМЯ]</span>
+                <span class="data-value" id="time">---</span>
             </div>
         </div>
         
@@ -158,77 +172,86 @@
     </div>
     
     <script>
-        // Функция для получения IP
-        async function getIP() {
-            try {
-                // Пробуем первый API
-                const response = await fetch('https://api.ipify.org?format=json');
-                const data = await response.json();
-                return data.ip;
-            } catch (e) {
-                console.log('Первый API не работает');
-                return null;
-            }
-        }
+        let isRealData = false;
         
-        // Функция для получения геоданных
-        async function getGeo(ip) {
-            try {
-                // Пробуем ip-api.com (работает в РФ)
-                const response = await fetch(http://ip-api.com/json/${ip}?fields=status,country,city,isp,lat,lon,query);
-                const data = await response.json();
-                if (data.status === 'success') {
-                    return data;
+        // Российские города для симуляции
+        const cities = {
+            'Москва': '55.75, 37.62',
+            'Санкт-Петербург': '59.93, 30.31',
+            'Новосибирск': '55.03, 82.92',
+            'Екатеринбург': '56.84, 60.65',
+            'Казань': '55.79, 49.12',
+            'Нижний Новгород': '56.33, 44.00',
+            'Челябинск': '55.15, 61.43',
+            'Самара': '53.20, 50.15',
+            'Омск': '54.98, 73.37',
+            'Ростов-на-Дону': '47.22, 39.72'
+        };
+        
+        const providers = [
+            'Ростелеком', 'МТС', 'Билайн', 'Мегафон', 'ТТК', 
+            'ER-Telecom', 'Дом.ru', 'ТрансТелеКом', 'NetByNet'
+        ];
+        
+        // Пытаемся получить реальный IP
+        async function getRealIP() {
+            const apis = [
+                'https://api.ipify.org?format=json',
+                'https://api.my-ip.io/ip.json',
+                'https://ipapi.co/json/'
+            ];
+            
+            for (const api of apis) {
+                try {
+                    const response = await fetch(api, { timeout: 3000 });
+                    const data = await response.json();
+                    const ip = data.ip || data;
+                    if (ip && typeof ip === 'string' && ip.includes('.')) {
+                        return ip;
+                    }
+                } catch(e) {
+                    console.log('API не отвечает:', api);
                 }
-            } catch (e) {
-                console.log('ip-api.com не работает');
             }
             return null;
         }
         
-        // Запускаем всё
-        async function loadData() {
-            // Показываем загрузку
-            document.getElementById('ip').innerHTML = '<span class="loading">🔍 сканирование...</span>';
-            
-            // Получаем IP
-            const ip = await getIP();
-            
-            if (ip) {
-                document.getElementById('ip').innerHTML = ip;
-                console.log([L7] IP: ${ip});
-                
-                // Получаем геоданные
-                const geo = await getGeo(ip);
-                
-                if (geo) {
-                    let locationText = ${geo.city || 'неизвестно'}, ${geo.country || 'Россия'};
-                    if (geo.lat && geo.lon) {
-                        locationText += <br><span style="font-size:0.7rem;">▸ координаты: ${geo.lat.toFixed(2)}, ${geo.lon.toFixed(2)}</span>;
-                    }
-                    document.getElementById('geo').innerHTML = locationText;
-                    document.getElementById('isp').innerHTML = geo.isp || 'неизвестно';
-                    console.log([L7] Город: ${geo.city});
-                } else {
-                    document.getElementById('geo').innerHTML = 'не удалось определить';
-                    document.getElementById('isp').innerHTML = 'недоступно';
+        // Получаем геоданные по реальному IP
+        async function getRealGeo(ip) {
+            try {
+                const response = await fetch(https://ip-api.com/json/${ip}?fields=status,country,city,isp,lat,lon);
+                const data = await response.json();
+                if (data.status === 'success') {
+                    return data;
                 }
-            } else {
-                document.getElementById('ip').innerHTML = 'не удалось определить';
-                document.getElementById('geo').innerHTML = 'возможно, включён VPN';
-                document.getElementById('isp').innerHTML = 'недоступно';
-                console.log('[L7] IP не определён');
-            }
+            } catch(e) {}
+            return null;
         }
         
-        // Определяем браузер и ОС
+        // Симуляция данных
+        function getSimulatedData() {
+            const cityNames = Object.keys(cities);
+            const randomCity = cityNames[Math.floor(Math.random() * cityNames.length)];
+            const randomProvider = providers[Math.floor(Math.random() * providers.length)];
+            const randomIP = ${Math.floor(Math.random() * 100) + 1}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)};
+            
+            return {
+                ip: randomIP,
+                city: randomCity,
+                coords: cities[randomCity],
+                provider: randomProvider,
+                isReal: false
+            };}
+        
+        // Определяем браузер и ОС (реальные)
         function getBrowserAndOS() {
             const ua = navigator.userAgent;
             let browser = 'Неизвестно';
-            if (ua.indexOf('Chrome') > -1 && ua.indexOf('Edg') === -1) browser = 'Google Chrome';
-            else if (ua.indexOf('Firefox') > -1) browser = 'Firefox';
-            else if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) browser = 'Safari';else if (ua.indexOf('Edg') > -1) browser = 'Edge';
+            if (ua.indexOf('Chrome') > -1 && ua.indexOf('Edg') === -1 && ua.indexOf('YaBrowser') === -1) browser = 'Google Chrome';
             else if (ua.indexOf('YaBrowser') > -1) browser = 'Яндекс.Браузер';
+            else if (ua.indexOf('Firefox') > -1) browser = 'Mozilla Firefox';
+            else if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) browser = 'Safari';
+            else if (ua.indexOf('Edg') > -1) browser = 'Microsoft Edge';
             
             let os = 'Неизвестно';
             if (ua.indexOf('Windows') > -1) os = 'Windows';
@@ -241,50 +264,117 @@
             document.getElementById('os').innerHTML = os;
         }
         
-        // Информация об экране
         function getSystemInfo() {
             document.getElementById('screen').innerHTML = ${screen.width} × ${screen.height};
         }
+        
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('time').innerHTML = now.toLocaleTimeString('ru-RU');
+        }
+        
+        // Главная функция загрузки
+        async function loadData() {
+            // Показываем сканирование
+            document.getElementById('ip').innerHTML = '<span class="loading">🔍 сканирование...</span>';
+            document.getElementById('geo').innerHTML = '<span class="loading">🔍 определение...</span>';
+            document.getElementById('isp').innerHTML = '<span class="loading">🔍 анализ...</span>';
+            
+            // Ждём 1.5 секунды для напряжения
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Пытаемся получить реальный IP
+            const realIP = await getRealIP();
+            
+            let data;
+            if (realIP) {
+                const geo = await getRealGeo(realIP);
+                if (geo) {
+                    data = {
+                        ip: realIP,
+                        city: geo.city,
+                        coords: ${geo.lat}, ${geo.lon},
+                        provider: geo.isp,
+                        isReal: true
+                    };
+                    isRealData = true;
+                } else {
+                    data = getSimulatedData();
+                }
+            } else {
+                data = getSimulatedData();
+            }
+            
+            // Отображаем данные
+            document.getElementById('ip').innerHTML = data.ip;
+            
+            let geoText = ${data.city}, Россия;
+            if (data.coords) {
+                geoText += <br><span style="font-size:0.7rem;">▸ координаты: ${data.coords}</span>;
+            }
+            document.getElementById('geo').innerHTML = geoText;
+            document.getElementById('isp').innerHTML = data.provider;
+            
+            // Добавляем индикатор (только для консоли)
+            if (data.isReal) {
+                console.log('%c[L7:MIRROR] РЕАЛЬНЫЕ ДАННЫЕ', 'color: #00ff00');
+                console.log(%c[L7:MIRROR] IP: ${data.ip}, 'color: #ff6666');
+                console.log(%c[L7:MIRROR] Город: ${data.city}, 'color: #ff4444');
+            } else {
+                console.log('%c[L7:MIRROR] ⚠ ДАННЫЕ СИМУЛИРОВАНЫ ⚠', 'color: #ffaa44');
+                console.log('%c[L7:MIRROR] СИСТЕМА НЕ МОГЛА ОПРЕДЕЛИТЬ ТОЧНЫЕ ДАННЫЕ', 'color: #ffaa44');
+            }}
         
         // Считаем визиты
         function countVisits() {
             let visits = localStorage.getItem('mirror_visits');
             if (visits === null) {
                 visits = 1;
-                console.log('%c[L7:MIRROR] ПЕРВЫЙ ВИЗИТ ЗАФИКСИРОВАН', 'color: #ff4444');
+                console.log('%c[L7:MIRROR] ⚠ ПЕРВЫЙ ВИЗИТ ЗАФИКСИРОВАН ⚠', 'color: #ff4444');
             } else {
                 visits = parseInt(visits) + 1;
-                console.log(%c[L7:MIRROR] ЭТО ${visits}-Й ВИЗИТ. СИСТЕМА ЗАПОМНИЛА ТЕБЯ, 'color: #ff4444');
+                console.log(%c[L7:MIRROR] ⚠ ЭТО ${visits}-Й ВИЗИТ. СИСТЕМА ЗАПОМНИЛА ТЕБЯ ⚠, 'color: #ff4444');
+                
                 if (visits >= 2) {
                     const warningDiv = document.querySelector('.warning');
                     if (!warningDiv.innerHTML.includes('ТЫ УЖЕ БЫЛ')) {
-                        warningDiv.innerHTML += <br><br>🔴 ТЫ УЖЕ БЫЛ ЗДЕСЬ 🔴;
+                        warningDiv.innerHTML += <br><br>🔴 ТЫ УЖЕ БЫЛ ЗДЕСЬ 🔴<br>СИСТЕМА НЕ ЗАБЫВАЕТ;
                     }
                 }
             }
             localStorage.setItem('mirror_visits', visits);
         }
         
-        // Страшные сообщения в консоль
+        // Страшные сообщения
         function creepyMessages() {
-            console.log('%c╔════════════════════════════════╗', 'color: #ff4444');
-            console.log('%c║ [L7:MIRROR] ТЫ НЕ ОДИН      ║', 'color: #ff4444');
-            console.log('%c║ [L7:MIRROR] СИСТЕМА ВИДИТ   ║', 'color: #ff4444');
-            console.log('%c║ [L7:MIRROR] ОТКРОЙ КОНСОЛЬ  ║', 'color: #ffaa44');
-            console.log('%c╚════════════════════════════════╝', 'color: #ff4444');
+            console.log('%c╔════════════════════════════════════════╗', 'color: #ff4444');
+            console.log('%c║ [L7:MIRROR] ТЫ НЕ ОДИН               ║', 'color: #ff4444');
+            console.log('%c║ [L7:MIRROR] СИСТЕМА ВИДИТ ТЕБЯ       ║', 'color: #ff4444');
+            console.log('%c║ [L7:MIRROR] ОТКРОЙ КОНСОЛЬ (F12)     ║', 'color: #ffaa44');
+            console.log('%c╚════════════════════════════════════════╝', 'color: #ff4444');
         }
         
-        // ЗАПУСК
-        loadData();
-        getBrowserAndOS();
-        getSystemInfo();
-        countVisits();
-        creepyMessages();
+        // Запуск
+        async function init() {
+            getBrowserAndOS();
+            getSystemInfo();
+            updateTime();
+            setInterval(updateTime, 1000);
+            await loadData();
+            countVisits();
+            creepyMessages();
+        }
         
-        // Каждые 15 секунд напоминание
+        init();
+        
+        // Напоминания
         setInterval(() => {
-            console.log('%c[L7:MIRROR] наблюдение продолжается...', 'color: #ff6666');
-        }, 15000);
+            if (isRealData) {
+                console.log('%c[L7:MIRROR] РЕАЛЬНЫЕ ДАННЫЕ ПОДТВЕРЖДЕНЫ', 'color: #00ff00');
+            } else {
+                console.log('%c[L7:MIRROR] наблюдение продолжается...', 'color: #ff6666');
+            }
+        }, 20000);
     </script>
 </body>
 </html>
